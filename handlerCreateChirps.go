@@ -95,7 +95,6 @@ func cleanChirp(chirp string) string {
 	words := strings.Split(chirp, " ")
 	var cleaned_words = make([]string, len(words))
 	for i, word := range words {
-		log.Printf(`Checking word: %s`, word)
 		// normalize the word
 		l_word := strings.ToLower(word)
 		// check if the word is in the banned words list
