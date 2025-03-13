@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/GoldenMM/lesson_httpserver/internal/auth"
+	"github.com/GoldenMM/lesson_httpserver/internal/database"
 )
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
-	type Email struct {
-		Email string `json:"email"`
+	type NewUser struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	type ErrResp struct {
@@ -17,9 +21,9 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	}
 	// Decode the JSON and check if valid
 	decoder := json.NewDecoder(r.Body)
-	email := Email{}
+	newUser := NewUser{}
 
-	err := decoder.Decode(&email)
+	err := decoder.Decode(&newUser)
 	// If something went wrong
 	if err != nil {
 		log.Printf(`Error decoding JSON: %s`, err)
@@ -34,8 +38,35 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Check if email or password is empty
+	if newUser.Email == "" || newUser.Password == "" {
+		log.Printf(`Error with request: Email or Password is empty`)
+		_, err := json.Marshal(&ErrResp{Err: "Email or Password is empty"})
+		if err != nil {
+			log.Printf(`Error marshaling JSON: %s`, err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
 	// Else it is a valid User
-	user, err := cfg.dbQueries.CreateUser(r.Context(), email.Email)
+	// Create the hashed password for the user
+	hashedPassword, err := auth.HashPassword(newUser.Password)
+	log.Printf(`Hashed password: %s`, hashedPassword)
+
+	if err != nil {
+		log.Printf(`Error hashing password: %s`, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+
+	}
+
+	createUserParams := database.CreateUserParams{
+		Email:          newUser.Email,
+		HashedPassword: hashedPassword,
+	}
+
+	user, err := cfg.dbQueries.CreateUser(r.Context(), createUserParams)
 	if err != nil {
 		log.Printf(`Error creating user: %s`, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -50,5 +81,4 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 		w.WriteHeader(http.StatusCreated)
 		w.Write(dat)
 	}
-
 }
