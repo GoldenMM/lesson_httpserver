@@ -52,8 +52,6 @@ func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) 
 	// Else it is a valid User
 	// Create the hashed password for the user
 	hashedPassword, err := auth.HashPassword(newUser.Password)
-	log.Printf(`Hashed password: %s`, hashedPassword)
-
 	if err != nil {
 		log.Printf(`Error hashing password: %s`, err)
 		w.WriteHeader(http.StatusInternalServerError)

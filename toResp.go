@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/GoldenMM/lesson_httpserver/internal/database"
@@ -12,15 +13,22 @@ type UserResp struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
-func toRespUser(u database.User) UserResp {
-	return UserResp{
+func toRespUser(u database.User, token ...string) UserResp {
+	resp := UserResp{
 		Id:        u.ID,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		Email:     u.Email,
 	}
+	if len(token) == 1 {
+		resp.Token = token[0]
+	} else if len(token) > 1 {
+		log.Fatalln("Too many arguments for token")
+	}
+	return resp
 }
 
 type ChirpResp struct {

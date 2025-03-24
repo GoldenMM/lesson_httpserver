@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/GoldenMM/lesson_httpserver/internal/auth"
 	"github.com/GoldenMM/lesson_httpserver/internal/database"
 	"github.com/google/uuid"
 )
@@ -22,10 +23,10 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		CleanedBody string `json:"cleaned_body"`
 	}
 
-	// Decode the JSON and check if valid
-	decoder := json.NewDecoder(r.Body)
 	chirp := Chirp{}
 
+	// Decode the JSON and check if valid
+	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&chirp)
 	if err != nil {
 		log.Printf(`Error decoding JSON: %s`, err)
@@ -37,6 +38,22 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write(dat)
+		return
+	}
+
+	// Check if the user is authenticated
+	// Get the token from the header
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf(`Error getting token: %s`, err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	// Validate the token
+	chirp.UserID, err = auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		log.Printf(`Error validating token: %s`, err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 

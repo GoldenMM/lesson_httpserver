@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/GoldenMM/lesson_httpserver/internal/auth"
 )
@@ -11,8 +12,9 @@ import (
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	type Request struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email        string `json:"email"`
+		Password     string `json:"password"`
+		ExpiresInSec int    `json:"expires_in_seconds"`
 	}
 
 	type ErrResp struct {
@@ -36,6 +38,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Truncate the ExpiresInSec to 1 hour if it is empty or over 1 hour
+	if request.ExpiresInSec == 0 { // If it is empty
+		request.ExpiresInSec = 3600
+	}
+	if request.ExpiresInSec > 3600 { // If it is over 1 hour
+		request.ExpiresInSec = 3600
+	}
+
 	// Else it is a valid User so check in database
 	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), request.Email)
 	if err != nil {
@@ -54,7 +64,14 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Password is correct
 	// Convert the user to JSON and return
-	dat, err := json.Marshal(toRespUser(user))
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, time.Second*time.Duration(request.ExpiresInSec))
+	if err != nil {
+		log.Printf(`Error making JWT: %s`, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	userResp := toRespUser(user, token)
+	dat, err := json.Marshal(userResp)
 	if err != nil {
 		log.Printf(`Error marshaling JSON: %s`, err)
 		w.WriteHeader(http.StatusInternalServerError)
