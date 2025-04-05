@@ -87,8 +87,8 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Load the userResp in preperation to marshal
 	userResp := toRespUser(user, token, refresh_token)
-	log.Printf(`JWTToken: %s`, userResp.Token)
-	log.Printf(`Created RefreshToken: %s`, userResp.RefreshToken)
+
+	// Marshal the userResp to JSON
 	dat, err := json.Marshal(userResp)
 	if err != nil {
 		log.Printf(`Error marshaling JSON: %s`, err)

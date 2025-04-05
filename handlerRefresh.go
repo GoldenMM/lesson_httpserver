@@ -26,18 +26,6 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	// DEBUG:
-	log.Printf(`Target Refresh Token: %s`, token)
-
-	// Get all the refresh tokens
-	refreshTokens, err := cfg.dbQueries.GetAllRefreshTokens(r.Context())
-	if err != nil {
-		log.Printf(`Error getting all refresh tokens: %s`, err)
-		return
-	}
-	for i, rt := range refreshTokens {
-		log.Printf(`Stored Refresh Token [%v]: %s`, i, rt.Token)
-	}
 
 	// Look up refresh token in database
 	refreshToken, err := cfg.dbQueries.GetRefreshToken(r.Context(), token)
