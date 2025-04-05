@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -35,7 +34,7 @@ func TestCheckPasswordHash_Invalid(t *testing.T) {
 
 // TestMakeJWT tests the MakeJWT function is working
 func TestMakeJWT(t *testing.T) {
-	jwt, err := MakeJWT(uuid.New(), "1234", time.Hour)
+	jwt, err := MakeJWT(uuid.New(), "1234")
 	if err != nil {
 		t.Errorf("MakeJWT() error = %v", err)
 	}
@@ -47,7 +46,7 @@ func TestMakeJWT(t *testing.T) {
 // TestValidateJWT tests the ValidateJWT function is working with valid token
 func TestValidateJWT_ValidToken(t *testing.T) {
 	userID := uuid.New()
-	token, _ := MakeJWT(userID, "1234", time.Hour)
+	token, _ := MakeJWT(userID, "1234")
 	returnedID, err := ValidateJWT(token, "1234")
 	if err != nil {
 		t.Errorf("ValidateJWT() error = %v", err)
@@ -60,16 +59,6 @@ func TestValidateJWT_ValidToken(t *testing.T) {
 // TestValidateJWTInvalid tests the ValidateJWT function is working with invalid token
 func TestValidateJWT_InvalidToken(t *testing.T) {
 	_, err := ValidateJWT("invalid token", "1234")
-	if err == nil {
-		t.Errorf("ValidateJWT() error = %v", err)
-	}
-}
-
-// TestValidateJWTExpired tests the ValidateJWT function is working with expired token
-func TestValidateJWT_ExpiredToken(t *testing.T) {
-	userID := uuid.New()
-	token, _ := MakeJWT(userID, "1234", -time.Hour)
-	_, err := ValidateJWT(token, "1234")
 	if err == nil {
 		t.Errorf("ValidateJWT() error = %v", err)
 	}
@@ -111,5 +100,15 @@ func TestGetBearerToken_InvalidAuthorizationHeaderFormat(t *testing.T) {
 	_, err := GetBearerToken(req.Header)
 	if err == nil {
 		t.Errorf("GetBearerToken() expected error, got nil")
+	}
+}
+
+func TestMakeRefreshToken(t *testing.T) {
+	refreshToken, err := MakeRefreshToken()
+	if err != nil {
+		t.Errorf("MakeRefreshToken() error = %v", err)
+	}
+	if refreshToken == "" {
+		t.Errorf("MakeRefreshToken() refreshToken is empty")
 	}
 }

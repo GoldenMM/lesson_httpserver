@@ -7,14 +7,16 @@ import (
 	"time"
 
 	"github.com/GoldenMM/lesson_httpserver/internal/auth"
+	"github.com/GoldenMM/lesson_httpserver/internal/database"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 
+	log.Printf(`API endpoint [%s] called`, "POST /api/login")
+
 	type Request struct {
-		Email        string `json:"email"`
-		Password     string `json:"password"`
-		ExpiresInSec int    `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	type ErrResp struct {
@@ -38,14 +40,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Truncate the ExpiresInSec to 1 hour if it is empty or over 1 hour
-	if request.ExpiresInSec == 0 { // If it is empty
-		request.ExpiresInSec = 3600
-	}
-	if request.ExpiresInSec > 3600 { // If it is over 1 hour
-		request.ExpiresInSec = 3600
-	}
-
 	// Else it is a valid User so check in database
 	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), request.Email)
 	if err != nil {
@@ -62,21 +56,47 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Password is correct
-	// Convert the user to JSON and return
-	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, time.Second*time.Duration(request.ExpiresInSec))
+	// Generate a new access token
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret)
 	if err != nil {
 		log.Printf(`Error making JWT: %s`, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	userResp := toRespUser(user, token)
+
+	// Make the refresh token
+	refresh_token, err := auth.MakeRefreshToken()
+	if err != nil {
+		log.Printf(`Error making refresh token: %s`, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Save the refresh token to the database
+	_, err = cfg.dbQueries.CreateRefreshToken(r.Context(),
+		database.CreateRefreshTokenParams{
+			Token:     refresh_token,
+			ExpiresAt: time.Now().Add(time.Hour * 24 * 60), // 60 days
+			UserID:    user.ID,
+		})
+	if err != nil {
+		log.Printf(`Error creating refresh token: %s`, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Load the userResp in preperation to marshal
+	userResp := toRespUser(user, token, refresh_token)
+	log.Printf(`JWTToken: %s`, userResp.Token)
+	log.Printf(`Created RefreshToken: %s`, userResp.RefreshToken)
 	dat, err := json.Marshal(userResp)
 	if err != nil {
 		log.Printf(`Error marshaling JSON: %s`, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// We successfully logged in
 	w.WriteHeader(http.StatusOK)
 	w.Write(dat)
 }

@@ -9,23 +9,28 @@ import (
 )
 
 type UserResp struct {
-	Id        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Token     string    `json:"token"`
+	Id           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
-func toRespUser(u database.User, token ...string) UserResp {
+func toRespUser(u database.User, tokens ...string) UserResp {
 	resp := UserResp{
 		Id:        u.ID,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		Email:     u.Email,
 	}
-	if len(token) == 1 {
-		resp.Token = token[0]
-	} else if len(token) > 1 {
+	if len(tokens) >= 1 {
+		resp.Token = tokens[0]
+	}
+	if len(tokens) == 2 {
+		resp.RefreshToken = tokens[1]
+	}
+	if len(tokens) > 2 {
 		log.Fatalln("Too many arguments for token")
 	}
 	return resp

@@ -11,6 +11,8 @@ import (
 
 func (cfg *apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request) {
 
+	log.Printf(`API endpoint [%s] called`, "POST /api/users")
+
 	type NewUser struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

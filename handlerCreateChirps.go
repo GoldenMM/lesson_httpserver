@@ -12,6 +12,9 @@ import (
 )
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+
+	log.Printf(`API endpoint [%s] called`, "POST /api/chirps")
+
 	type Chirp struct {
 		Body   string    `json:"body"`
 		UserID uuid.UUID `json:"user_id"`

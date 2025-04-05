@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"log"
 	"net/http"
@@ -24,12 +26,12 @@ func CheckPasswordHash(password, hash string) error {
 	return err
 }
 
-func MakeJWT(userID uuid.UUID, tokenSecret string, expiresIn time.Duration) (string, error) {
+func MakeJWT(userID uuid.UUID, tokenSecret string) (string, error) {
 	c := jwt.RegisteredClaims{
 		Issuer:    "chripy",
 		Subject:   userID.String(),
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiresIn)),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, c)
 	ss, err := token.SignedString([]byte(tokenSecret))
@@ -50,7 +52,7 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 			return []byte(tokenSecret), nil
 		})
 	if err != nil {
-		log.Println("Error validating token:", err)
+		log.Println("Error validating JWT token:", err)
 		return uuid.Nil, err
 	}
 
@@ -70,11 +72,21 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error) {
 
 func GetBearerToken(headers http.Header) (string, error) {
 	uncleanToken := headers.Get("Authorization")
+
 	if uncleanToken == "" {
 		return "", errors.New("no token provided")
+	}
+	if uncleanToken == "Bearer " {
+		return "", errors.New("empty token provided")
 	}
 	if uncleanToken[:7] != "Bearer " {
 		return "", errors.New("invalid token format")
 	}
 	return uncleanToken[7:], nil
+}
+
+func MakeRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b), nil
 }

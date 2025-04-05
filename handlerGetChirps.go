@@ -11,6 +11,8 @@ import (
 
 func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request) {
 
+	log.Printf(`API endpoint [%s] called`, "GET /api/chirps")
+
 	// Query the database for all chirps
 	db_chirps, err := cfg.dbQueries.GetAllChirps(r.Context())
 	if err != nil {
@@ -37,6 +39,9 @@ func (cfg *apiConfig) handlerGetAllChirps(w http.ResponseWriter, r *http.Request
 }
 
 func (cfg *apiConfig) handlerGetChirpByID(w http.ResponseWriter, r *http.Request) {
+
+	log.Printf(`API endpoint [%s] called`, "GET /api/chirps/{chirpID}")
+
 	// Get the chirp ID
 	chirp_Id := r.PathValue("chirpID")
 	uuid_chirp_Id, err := uuid.Parse(chirp_Id)

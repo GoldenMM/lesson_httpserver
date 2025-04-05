@@ -1,10 +1,13 @@
 package main
 
 import (
+	"log"
 	"net/http"
 )
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
+
+	log.Printf(`API endpoint [%s] called`, "POST /admin/reset")
 
 	if cfg.platform != "dev" {
 		w.WriteHeader(http.StatusForbidden)
