@@ -19,3 +19,8 @@ ORDER BY created_at;
 -- -- chirp_id UUID
 SELECT * FROM chirps
 WHERE id = $1;
+
+-- name: DeleteChirp :exec
+-- -- chirp_id UUID
+DELETE FROM chirps
+WHERE id = $1;
