@@ -112,3 +112,31 @@ func TestMakeRefreshToken(t *testing.T) {
 		t.Errorf("MakeRefreshToken() refreshToken is empty")
 	}
 }
+
+func TestGetAPIKey_ValidAuthorizationHeader(t *testing.T) {
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "ApiKey validapikey123")
+	apiKey, err := GetAPIKey(req.Header)
+	if err != nil {
+		t.Errorf("GetAPIKey() error = %v", err)
+	}
+	if apiKey != "validapikey123" {
+		t.Errorf("GetAPIKey() apiKey = %v, want %v", apiKey, "validapikey123")
+	}
+}
+
+func TestGetAPIKey_EmptyAuthorizationHeader(t *testing.T) {
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("Authorization", "")
+	_, err := GetAPIKey(req.Header)
+	if err == nil {
+		t.Errorf("GetAPIKey() expected error, got nil")
+	}
+}
+func TestGetAPIKey_NoAuthorizationHeader(t *testing.T) {
+	req := httptest.NewRequest("GET", "/", nil)
+	_, err := GetAPIKey(req.Header)
+	if err == nil {
+		t.Errorf("GetAPIKey() expected error, got nil")
+	}
+}

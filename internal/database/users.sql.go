@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -21,7 +20,7 @@ VALUES (
     $1,
     $2
 )
-RETURNING id, created_at, updated_at, email, hashed_password
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -39,12 +38,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, created_at, updated_at, email, hashed_password FROM users WHERE email = $1
+SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red FROM users WHERE email = $1
 `
 
 // email TEXT
@@ -57,6 +57,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -69,7 +70,7 @@ SET
     updated_at = NOW()
 WHERE
     id = $1
-RETURNING id, created_at, updated_at, email
+RETURNING id, created_at, updated_at, email, hashed_password, is_chirpy_red
 `
 
 type UpdateUserParams struct {
@@ -78,24 +79,40 @@ type UpdateUserParams struct {
 	HashedPassword string
 }
 
-type UpdateUserRow struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Email     string
-}
-
 // id UUID
 // email TEXT
 // hashed_password TEXT
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, updateUser, arg.ID, arg.Email, arg.HashedPassword)
-	var i UpdateUserRow
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
+}
+
+const upgradeUserChirpyRed = `-- name: UpgradeUserChirpyRed :exec
+UPDATE users
+SET
+    is_chirpy_red = $2,
+    updated_at = NOW()
+WHERE
+    id = $1
+`
+
+type UpgradeUserChirpyRedParams struct {
+	ID          uuid.UUID
+	IsChirpyRed bool
+}
+
+// id UUID
+// is_chirpy_red BOOLEAN
+func (q *Queries) UpgradeUserChirpyRed(ctx context.Context, arg UpgradeUserChirpyRedParams) error {
+	_, err := q.db.ExecContext(ctx, upgradeUserChirpyRed, arg.ID, arg.IsChirpyRed)
+	return err
 }

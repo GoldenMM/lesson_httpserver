@@ -90,3 +90,18 @@ func MakeRefreshToken() (string, error) {
 	rand.Read(b)
 	return hex.EncodeToString(b), nil
 }
+
+func GetAPIKey(h http.Header) (string, error) {
+	uncleanKey := h.Get("Authorization")
+
+	if uncleanKey == "" {
+		return "", errors.New("no key provided")
+	}
+	if uncleanKey == "ApiKey " {
+		return "", errors.New("empty key provided")
+	}
+	if uncleanKey[:7] != "ApiKey " {
+		return "", errors.New("invalid key format")
+	}
+	return uncleanKey[7:], nil
+}

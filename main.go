@@ -17,6 +17,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	tokenSecret    string
+	polkaKey       string
 }
 
 func main() {
@@ -39,6 +40,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		platform:       os.Getenv("PLATFORM"),
 		tokenSecret:    os.Getenv("TOKEN_SECRET"),
+		polkaKey:       os.Getenv("POLKA_KEY"),
 	}
 	apiCfg.dbQueries = database.New(db)
 
@@ -58,6 +60,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefresh)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerPolkaWebhook)
 
 	log.Printf(`API endpoint [%s] called`, "POST /api/revoke")
 
